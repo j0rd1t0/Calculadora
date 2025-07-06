@@ -1,1 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculadora Hablada de Combustible (v5)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      text-align: center;
+      background: #f9f9f9;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+    .btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      margin: 0.5rem;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    #status, #timer {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: #333;
+    }
+    #transcripcion, #resultado {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      color: #333;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Calculadora Hablada de Combustible (v5)</h1>
+  <button id="btnStart" class="btn">🎤 Iniciar voz</button>
+  <button id="btnSend" class="btn" disabled>✅ Enviar</button>
+  <p id="status">Estado: Inactivo</p>
+  <p id="timer">Tiempo de escucha: 0s</p>
+  <p id="transcripcion">Di: "Precio 1 coma 30 y me quedan 120 kilómetros"</p>
+  <p id="resultado"></p>
 
+  <script>
+    const CAPACIDAD_MAX = 55;  // litros útiles
+    const CONSUMO_PROM = 15.8;  // km/L
+
+    // Reconocimiento de voz
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      document.getElementById('status').textContent = 'API no soportada en este navegador';
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    const btnStart = document.getElementById('btnStart');
+    const btnSend = document.getElementById('btnSend');
+    const statusEl = document.getElementById('status');
+    const timerEl = document.getElementById('timer');
+    const transEl = document.getElementById('transcripcion');
+    const resultEl = document.getElementById('resultado');
+
+    let startTime, listeningTimer;
+    let finalTranscript = '';
+
+    btnStart.addEventListener('click', () => {
+      finalTranscript = '';
+      transEl.textContent = '';
+      resultEl.textContent = '';
+      statusEl.textContent = 'Estado: Escuchando...';
+      btnStart.disabled = true;
+      btnSend.disabled = false;
+      recognition.start();
+      startTime = Date.now();
+      listeningTimer = setInterval(() => {
+        const sec = Math.floor((Date.now() - startTime) / 1000);
+        timerEl.textContent = `Tiempo de escucha: ${sec}s`;
+      }, 1000);
+    });
+
+    btnSend.addEventListener('click', () => {
+      statusEl.textContent = 'Estado: Procesando...';
+      recognition.stop();
+      clearInterval(listeningTimer);
+      btnSend.disabled = true;
+    });
+
+    recognition.addEventListener('result', (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; ++i) {
+        const transcript = e.results[i][0].transcript;
+        if (e.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+      transEl.textContent = finalTranscript + interim;
+    });
+
+    recognition.addEventListener('end', () => {
+      statusEl.textContent = 'Estado: Finalizado';
+      btnStart.disabled = false;
+      processTranscript(finalTranscript.trim());
+    });
+
+    recognition.addEventListener('error', (e) => {
+      statusEl.textContent = `Error: ${e.error}`;
+      btnStart.disabled = false;
+      btnSend.disabled = true;
+      clearInterval(listeningTimer);
+    });
+
+    function processTranscript(text) {
+      const texto = text.toLowerCase();
+      const nums = texto.match(/\d+([.,]\d+)?/g);
+      if (!nums || nums.length < 2) {
+        const msgErr = 'No se entendieron precio y km. Repite.';
+        resultEl.textContent = msgErr;
+        speak(msgErr);
+        return;
+      }
+      const precio = parseFloat(nums[0].replace(',', '.'));
+      const kmQuedan = parseFloat(nums[1].replace(',', '.'));
+      const litrosRest = kmQuedan / CONSUMO_PROM;
+      const litrosAdd = Math.max(0, CAPACIDAD_MAX - litrosRest);
+      const coste = litrosAdd * precio;
+      const autonomiaTot = Math.round(CAPACIDAD_MAX * CONSUMO_PROM);
+
+      const msg = `Para llenar hasta ${CAPACIDAD_MAX} L, añade ${litrosAdd.toFixed(2)} L (€${coste.toFixed(2)}). ` +
+                  `Autonomía total: ${autonomiaTot} km.`;
+      resultEl.textContent = msg;
+      speak(msg);
+    }
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'es-ES';
+      speechSynthesis.speak(utter);
+    }
+  </script>
+</body>
+</html>
