@@ -1,11 +1,71 @@
-Calculadora Hablada de Combustible :root { --primary: #0066ff; --on-primary: #fff; --bg: #f0f4f8; --surface: #ffffff; --text: #333; --radius: 0.5rem; --transition: 0.3s; } [data-theme="dark"] { --bg: #1e1e1e; --surface: #2e2e2e; --text: #ddd; } * { box-sizing: border-box; margin: 0; padding: 0; } body { background: var(--bg); font-family: 'Segoe UI', sans-serif; color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; padding: 2rem; transition: background var(--transition), color var(--transition); } h1 { font-size: 1.6rem; margin-bottom: 1rem; text-align: center; } #controls { display: flex; gap: 1rem; margin-bottom: 1rem; } button { background: var(--primary); color: var(--on-primary); border: none; padding: 1rem 1.5rem; font-size: 1rem; border-radius: var(--radius); cursor: pointer; transition: transform var(--transition); display: flex; align-items: center; gap: 0.5rem; } button:active { transform: scale(0.95); } #btnListen.listening { background: #ff3333; } #status { margin-top: 0.5rem; } #interim { font-style: italic; opacity: 0.7; margin-top: 0.5rem; } #resultado { margin-top: 1.5rem; background: var(--surface); padding: 1rem; border-radius: var(--radius); box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 90%; text-align: center; min-height: 3rem; transition: background var(--transition), color var(--transition); } #settings { margin-top: 1rem; display: flex; gap: 1rem; } input, label { font-size: 0.9rem; } #graph { margin-top:1rem; width: 90%; height: 10px; background:#ccc; border-radius:5px; overflow:hidden; } #bar { height:100%; width:0%; background: var(--primary); transition: width 1s ease; } #copy { margin-top:1rem; font-size:0.9rem; } #themeToggle { background: var(--surface); color: var(--text); } #spinner { display:none; border: 4px solid var(--surface); border-top:4px solid var(--primary); border-radius:50%; width:24px; height:24px; animation:spin 1s linear infinite; margin-left:0.5rem; } @keyframes spin { to{ transform:rotate(360deg);} } 🎙️ Calculadora Hablada de Combustible 
-
-🔊 Empezar a escuchar 📋 Copiar 🌓 
-
-Estado: Inactivo
-
-Consumo: km/L Capacidad: L 
-
-Di: "Precio X coma Y y me quedan Z kilómetros" 
-
-const btn = document.getElementById('btnListen'); const copyBtn = document.getElementById('copy'); const themeToggle = document.getElementById('themeToggle'); const statusEl = document.getElementById('status'); const interimEl = document.getElementById('interim'); const resultEl = document.getElementById('resultado'); const consumoInput = document.getElementById('consumo'); const capacidadInput = document.getElementById('capacidad'); const bar = document.getElementById('bar'); const spinner = document.getElementById('spinner'); let finalText = ''; let recog; try { recog = new (window.SpeechRecognition||window.webkitSpeechRecognition)(); } catch(e) { statusEl.textContent='Reconocimiento no soportado'; btn.disabled=true; } if (recog) { recog.lang='es-ES'; recog.interimResults=true; recog.continuous=false; recog.onstart = ()=>{ statusEl.textContent='Escuchando...'; spinner.style.display='inline-block'; btn.classList.add('listening'); }; recog.onend = ()=>{ statusEl.textContent='Procesando...'; spinner.style.display='none'; btn.classList.remove('listening'); process(finalText); }; recog.onresult = e=>{ interimEl.textContent='"'+Array.from(e.results).map(r=>r[0].transcript).join(' ')+'"'; finalText = e.results[0].isFinal? e.results[0][0].transcript : finalText; }; recog.onerror = e=>{ statusEl.textContent='Error: '+e.error; spinner.style.display='none'; btn.classList.remove('listening'); }; } btn.onclick = ()=>{ finalText=''; interimEl.textContent=''; resultEl.textContent=''; bar.style.width='0%'; recog.start(); }; copyBtn.onclick = ()=>{ navigator.clipboard.writeText(resultEl.textContent); alert('Copiado al portapapeles'); }; themeToggle.onclick = ()=>{ const dt = document.body.getAttribute('data-theme'); document.body.setAttribute('data-theme', dt==='light'?'dark':'light'); }; function process(text) { const precioKm = text.match(/\d+([.,]\d+)?/g); const consumo = parseFloat(consumoInput.value), cap=parseFloat(capacidadInput.value); if(!precioKm||precioKm.length 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora Hablada de Combustible</title>
+  <style>
+    :root { --primary:#0066ff; --on-primary:#fff; --bg:#f0f4f8; --surface:#fff; --text:#333; --radius:0.5rem; --transition:0.3s; }
+    [data-theme="dark"] { --bg:#1e1e1e; --surface:#2e2e2e; --text:#ddd; }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;padding:1rem;min-height:100vh;transition:background var(--transition),color var(--transition);}
+    h1{font-size:1.5rem;margin-bottom:1rem;text-align:center;}
+    #controls{display:flex;gap:0.5rem;margin-bottom:1rem;}
+    button{border:none;border-radius:var(--radius);padding:0.75rem 1rem;background:var(--primary);color:var(--on-primary);cursor:pointer;display:flex;align-items:center;gap:0.5rem;transition:transform var(--transition);}    
+    button:active{transform:scale(0.95);}
+    #btnListen.listening{background:#ff3333;}
+    #status{margin-top:0.5rem;font-size:0.9rem;}
+    #interim{font-style:italic;opacity:0.6;margin-top:0.25rem;max-width:90%;text-align:center;}
+    #resultado{margin-top:1rem;background:var(--surface);padding:1rem;border-radius:var(--radius);box-shadow:0 2px 5px rgba(0,0,0,0.1);max-width:90%;text-align:center;min-height:3rem;transition:background var(--transition),color var(--transition);}
+    #settings{margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;}
+    #settings label{font-size:0.8rem;color:#555;}
+    #graph{width:90%;height:6px;background:#ddd;border-radius:3px;overflow:hidden;margin-top:1rem;}
+    #bar{height:100%;width:0;background:var(--primary);transition:width 1s ease;}
+    #copy{background:#28a745;}
+    #themeToggle{background:var(--surface);color:var(--text);}
+    #spinner{display:none;border:3px solid var(--surface);border-top:3px solid var(--primary);border-radius:50%;width:18px;height:18px;animation:spin 1s linear infinite;margin-left:0.5rem;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+  </style>
+</head>
+<body data-theme="light">
+  <h1>🎙️ Calculadora Hablada de Combustible</h1>
+  <div id="controls">
+    <button id="btnListen">🔊 Escuchar<span id="spinner"></span></button>
+    <button id="copy">📋 Copiar</button>
+    <button id="themeToggle">🌓</button>
+  </div>
+  <div id="status">Estado: Inactivo</div>
+  <div id="interim"></div>
+  <div id="graph"><div id="bar"></div></div>
+  <div id="resultado"></div>
+  <div id="settings">
+    <label>Consumo: <input id="consumo" type="number" value="15.8" step="0.1"> km/L</label>
+    <label>Capacidad: <input id="capacidad" type="number" value="55" step="1"> L</label>
+  </div>
+  <script>
+    let recog, listening=false, finalText='';
+    const btn=document.getElementById('btnListen'), copyBtn=document.getElementById('copy'), themeBtn=document.getElementById('themeToggle');
+    const status=document.getElementById('status'), interim=document.getElementById('interim'), result=document.getElementById('resultado');
+    const consumoEl=document.getElementById('consumo'), capEl=document.getElementById('capacidad'), graphBar=document.getElementById('bar'), spinner=document.getElementById('spinner');
+    try{recog=new(window.SpeechRecognition||window.webkitSpeechRecognition)();}
+    catch(e){status.textContent='No soporta reconocimiento de voz.';btn.disabled=true;}
+    if(recog){recog.lang='es-ES';recog.interimResults=true;recog.continuous=false;
+      recog.onstart=()=>{status.textContent='Escuchando...';btn.classList.add('listening');spinner.style.display='inline-block';};
+      recog.onend=()=>{status.textContent='Procesando...';btn.classList.remove('listening');spinner.style.display='none';processText(finalText);};
+      recog.onerror=e=>{status.textContent='Error: '+e.error;btn.classList.remove('listening');spinner.style.display='none';};
+      recog.onresult=e=>{finalText='';let interimStr='';for(let r of e.results){interimStr+=r[0].transcript+' '; if(r.isFinal) finalText+=r[0].transcript;}interim.textContent=interimStr;}
+    }
+    btn.onclick=()=>{if(!listening){listening=true;finalText='';interim.textContent='';result.textContent='';graphBar.style.width='0';recog.start();}else{listening=false;recog.stop();}};
+    copyBtn.onclick=()=>{navigator.clipboard.writeText(result.textContent);alert('Copiado');};
+    themeBtn.onclick=()=>{document.body.setAttribute('data-theme',document.body.getAttribute('data-theme')==='light'?'dark':'light');};
+    function processText(text){const nums=text.match(/\d+[.,]?\d*/g),cons= parseFloat(consumoEl.value),cap=parseFloat(capEl.value);
+      if(!nums||nums.length<2){result.textContent='Frase no reconocida.';speak('No entendí.');return;}
+      const precio= parseFloat(nums[0].replace(',','.')), km=parseFloat(nums[1].replace(',','.'));
+      const rest=km/cons, add=Math.max(0,cap-rest), cost=add*precio, auto=Math.round(cap*cons);
+      const resp=`Añade ${add.toFixed(2)} L (≈€${cost.toFixed(2)}). Autonomía: ${auto} km.`;
+      result.textContent=resp;graphBar.style.width=`${(rest/cap)*100}%`;speak(resp);
+    }
+    function speak(txt){const u=new SpeechSynthesisUtterance(txt);u.lang='es-ES';speechSynthesis.speak(u);}  
+  </script>
+</body>
+</html>
